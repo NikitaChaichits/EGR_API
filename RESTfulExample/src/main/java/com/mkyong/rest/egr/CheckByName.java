@@ -12,6 +12,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Objects;
 
 
 public class CheckByName
@@ -27,8 +28,7 @@ public class CheckByName
     1 - Название УО правильное
     2 - УНП УО нет в ЕГР
     3 - УНП совпало, наименование нет. УО является филлиалом
-    4 - УО переименовано
-    5 - Новая запись из ЕГР
+    4 - Новая запись из ЕГР
     */
 
     public void dbConnect(String db_connect_string,
@@ -64,37 +64,70 @@ public class CheckByName
 //                    }
 //                }
 //            }
+//
+//            /**
+//             Update GI.unp from bufer if Namehistory.fullname = bufer.fullname
+//             */
+//
+//            String updateUNP = "select namehistory.id, bufer.unp, namehistory.fullname, bufer.shortname  from bufer " +
+//                    "inner join Namehistory on Namehistory.fullname=bufer.name " +
+//                    "where bufer.name = Namehistory.fullname " +
+//                    "group by namehistory.id, namehistory.fullname, bufer.id, bufer.unp, bufer.shortname";
+//
+//            Statement forGeneralInfo = connection.createStatement();
+//            ResultSet rs = forGeneralInfo.executeQuery(updateUNP);
+//
+//            while (rs.next()) {
+//                Integer namehistory_id = rs.getInt("id");
+//                String unpFromBufer = rs.getString("unp");
+//                String fullnameFromBufer = rs.getString("fullname");
+//                String shortnameFromBufer = rs.getString("shortname");
+//
+//                String checkUNP = "select unp from generalinfo where generalinfo.name =" + namehistory_id;
+//                Statement forCheckUNP = connection.createStatement();
+//                ResultSet rs2 = forCheckUNP.executeQuery(checkUNP);
+//                while (rs2.next()){
+//                    String unpFromGI = rs2.getString("unp");
+//                    if (!unpFromBufer.equals(unpFromGI)){
+//                        String updateGeneralInfo = "update generalinfo set unp = '" + unpFromBufer + "', updatedate = '" + Main.getCurrentDate() + "' where generalinfo.name=" + namehistory_id + "";
+//                        Main.query(connection, updateGeneralInfo);
+//
+//                        String updateStatus = "update Namehistory set statusEGR = 5, shortname= '" + shortnameFromBufer + "' where id=" + namehistory_id + "";
+//                        Main.query(connection, updateStatus);
+//                        System.out.println("у УО = " + fullnameFromBufer + " обновлено УНП ");
+//                    }
+//                }
+//            }
 
             /**
-             Update GI.unp from bufer if Namehistory.fullname = bufer.fullname
-             */
+             //             Update GI.unp from bufer if GI.unpe != bufer.unp
+             //             */
 
-            String updateUNP = "select namehistory.id, bufer.unp, namehistory.fullname, bufer.shortname  from bufer " +
-                    "inner join Namehistory on Namehistory.fullname=bufer.name " +
-                    "where bufer.name = Namehistory.fullname " +
-                    "group by namehistory.id, namehistory.fullname, bufer.id, bufer.unp, bufer.shortname";
-
+            String updateUNP = "select * from bufer";
             Statement forGeneralInfo = connection.createStatement();
             ResultSet rs = forGeneralInfo.executeQuery(updateUNP);
 
             while (rs.next()) {
-                Integer namehistory_id = rs.getInt("id");
+                Integer idFromBufer = rs.getInt("id");
                 String unpFromBufer = rs.getString("unp");
-                String fullnameFromBufer = rs.getString("fullname");
-                String shortnameFromBufer = rs.getString("shortname");
+                String okpoFromBufer = rs.getString("okpo");
 
-                String checkUNP = "select unp from generalinfo where generalinfo.name =" + namehistory_id;
+                String checkUNP = "select unp, okpo from generalinfo where generalinfo.id =" + idFromBufer;
+
                 Statement forCheckUNP = connection.createStatement();
                 ResultSet rs2 = forCheckUNP.executeQuery(checkUNP);
-                while (rs2.next()){
+                while (rs2.next()) {
                     String unpFromGI = rs2.getString("unp");
-                    if (!unpFromBufer.equals(unpFromGI)){
-                        String updateGeneralInfo = "update generalinfo set unp = '" + unpFromBufer + "', updatedate = '" + Main.getCurrentDate() + "' where generalinfo.name=" + namehistory_id + "";
-                        Main.query(connection, updateGeneralInfo);
+                    String okpoFromGI = rs2.getString("okpo");
 
-                        String updateStatus = "update Namehistory set statusEGR = 5, shortname= '" + shortnameFromBufer + "' where id=" + namehistory_id + "";
-                        Main.query(connection, updateStatus);
-                        System.out.println("у УО = " + fullnameFromBufer + " обновлено УНП ");
+                    if (!compare(okpoFromBufer, okpoFromGI) ) {
+                        String updateGeneralInfo = "update generalinfo set " +
+//                                "unp = '" + unpFromBufer + "', " +
+                                "okpo = '" + okpoFromBufer + "', " +
+                                "updatedate = '" + Main.getCurrentDate() + "' " +
+                                "where generalinfo.id=" + idFromBufer + "";
+                        Main.query(connection, updateGeneralInfo);
+                        System.out.println("УО id=" + idFromBufer + " изменено");
                     }
                 }
             }
@@ -109,6 +142,10 @@ public class CheckByName
         CheckByName connServer = new CheckByName();
 //        connServer.dbConnect("jdbc:sqlserver://localhost:1584;databasename=eduorg;", "nikita","root");
         connServer.dbConnect("jdbc:sqlserver://195.50.1.212:1433;databasename=eduorg;", "sa","vli64m0sdg!Q");
+    }
+
+    public static boolean compare(String str1, String str2) {
+        return Objects.equals(str1, str2);
     }
 
 }
